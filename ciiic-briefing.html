@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CIIIC Jaarevent — Fotobriefing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --now-line: #e8ff47;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  header {
+    padding: 24px 20px 0;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .event-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .event-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .event-title span {
+    color: var(--accent);
+  }
+
+  .live-clock {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    text-align: right;
+  }
+
+  .live-clock .date-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    padding-bottom: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .meta-item::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  nav {
+    display: flex;
+    gap: 0;
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  main {
+    padding: 0 16px;
+  }
+
+  /* ── TIMELINE ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .timeline {
+    padding: 20px 0;
+  }
+
+  .time-block {
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    transition: background 0.1s;
+  }
+
+  .time-block.is-now {
+    background: rgba(232, 255, 71, 0.04);
+    border-radius: 6px;
+    padding: 12px 8px;
+    margin: 0 -8px;
+    border-bottom: none;
+  }
+
+  .time-block.is-now::before {
+    content: '▶ NU';
+    position: absolute;
+    right: 8px;
+    top: 12px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .time-block.past {
+    opacity: 0.38;
+  }
+
+  .time-col {
+    width: 48px;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  .time-start {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .time-end {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .time-dot {
+    width: 2px;
+    background: var(--border);
+    margin-top: 22px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .time-block.is-now .time-dot {
+    background: var(--accent);
+  }
+
+  .time-dot::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    margin-top: -4px;
+  }
+
+  .time-block.is-now .time-dot::before {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .time-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .time-tag {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+
+  .time-tag.tag-photo {
+    color: var(--accent);
+  }
+
+  .time-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  .time-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .time-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 5px;
+    background: var(--surface2);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  /* ── CONTACTS ── */
+  .contacts-list {
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .contact-card {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .contact-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .contact-info { flex: 1; min-width: 0; }
+
+  .contact-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .contact-role {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-top: 1px;
+  }
+
+  .contact-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-call, .btn-mail {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 15px;
+    transition: all 0.15s;
+  }
+
+  .btn-call:hover, .btn-mail:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── INFO ── */
+  .info-list {
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-card {
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .info-card-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .info-icon {
+    font-size: 18px;
+  }
+
+  .info-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .info-card-body {
+    padding: 0 16px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .info-card-body strong {
+    color: var(--text);
+  }
+
+  .info-highlight {
+    background: rgba(232, 255, 71, 0.07);
+    border-top: 1px solid rgba(232, 255, 71, 0.15);
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── progress bar ── */
+  .day-progress {
+    height: 2px;
+    background: var(--border);
+    margin-bottom: 16px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .day-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 1s linear;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 20px 0 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="event-label">Fotobriefing · 16 april 2026</div>
+      <div class="event-title">CIIIC<br><span>Jaarevent</span></div>
+    </div>
+    <div>
+      <div class="live-clock" id="clock">--:--</div>
+      <div class="live-clock date-label">Werkspoorkathedraal</div>
+    </div>
+  </div>
+  <div class="meta-row">
+    <span class="meta-item">Utrecht</span>
+    <span class="meta-item">Loods / meerdere tracks</span>
+    <span class="meta-item">09:15 – ~18:00</span>
+  </div>
+  <nav>
+    <button class="nav-btn active" onclick="show('timeline', this)">Tijdlijn</button>
+    <button class="nav-btn" onclick="show('contacts', this)">Contacten</button>
+    <button class="nav-btn" onclick="show('info', this)">Info</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ── TIMELINE ── -->
+<div class="section active" id="timeline">
+  <div class="timeline" id="tl"></div>
+</div>
+
+<!-- ── CONTACTS ── -->
+<div class="section" id="contacts">
+  <div class="contacts-list">
+
+    <div class="section-title">Jouw contacten op locatie</div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">AE</div>
+      <div class="contact-info">
+        <div class="contact-name">Annemaryn / Esther</div>
+        <div class="contact-role">Ontvangst fotograaf · CIIIC</div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">LP</div>
+      <div class="contact-info">
+        <div class="contact-name">Lisa Luijten</div>
+        <div class="contact-role">Producent · New Now Producties</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:0612708057" class="btn-call">📞</a>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">JR</div>
+      <div class="contact-info">
+        <div class="contact-name">Judith Rigter</div>
+        <div class="contact-role">Producent · New Now Producties</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:0614221884" class="btn-call">📞</a>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">NP</div>
+      <div class="contact-info">
+        <div class="contact-name">New Now Producties</div>
+        <div class="contact-role">Algemeen productie</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:0624921360" class="btn-call">📞</a>
+        <a href="mailto:team@newnowproducties.nl" class="btn-mail">✉️</a>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">JW</div>
+      <div class="contact-info">
+        <div class="contact-name">Joeri (WSK)</div>
+        <div class="contact-role">Spoed calamiteiten · Werkspoorkathedraal</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:0657997258" class="btn-call">🚨</a>
+      </div>
+    </div>
+
+    <div class="section-title">Andere fotografen aanwezig</div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">LV</div>
+      <div class="contact-info">
+        <div class="contact-name">Lieke Vermeulen</div>
+        <div class="contact-role">Fotograaf · Tellart-team</div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-avatar">LO</div>
+      <div class="contact-info">
+        <div class="contact-name">Lidiya Ozkul</div>
+        <div class="contact-role">Videograaf/producer · Tellart</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:0627900396" class="btn-call">📞</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── INFO ── -->
+<div class="section" id="info">
+  <div class="info-list">
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">📍</span>
+        <span class="info-card-title">Locatie</span>
+      </div>
+      <div class="info-card-body">
+        <strong>Werkspoorkathedraal</strong><br>
+        Tractieweg 41, Utrecht<br><br>
+        Hoofdruimte = <strong>Loods</strong><br>
+        Breakout tracks in Loods + Wasruimte<br>
+        Restaurantje = Wasruimte<br>
+        Productieruimte = crew/catering backstage
+      </div>
+      <div class="info-highlight">→ Ontvangst bij de welkomsbalie in de Loods</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">🎯</span>
+        <span class="info-card-title">Prioriteiten als fotograaf</span>
+      </div>
+      <div class="info-card-body">
+        <strong>1. RVO-bijeenkomst (09:50)</strong><br>
+        Foto met Heleen Rouw → meteen doorsturen naar techniek voor presentatie op het scherm<br><br>
+        <strong>2. Inloop bezoekers (10:15–11:00)</strong><br>
+        Sfeer, installaties, welkomsbalie, telefooncel<br><br>
+        <strong>3. Plenaire sessie (11:00–12:30)</strong><br>
+        Podium, keynote Matt Cottam, SAM AI Game Show (Sabrina Verhage)<br><br>
+        <strong>4. Tracks (13:30–17:00)</strong><br>
+        5 parallelle sessies in Loods + Wasruimte<br><br>
+        <strong>5. Borrel (17:00–18:00)</strong><br>
+        Installaties draaien, Loods
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">⚡</span>
+        <span class="info-card-title">Let op: foto direct door</span>
+      </div>
+      <div class="info-card-body">
+        Na het RVO-fotomoment (~09:50) moet een foto van de bijeenkomst met Heleen <strong>zo snel mogelijk naar de techniek</strong> — zij plaatsen het in de presentatie op het podiumscherm.
+      </div>
+      <div class="info-highlight">Contact: Annemaryn / Esther → techniek (ForLive)</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">🎙️</span>
+        <span class="info-card-title">Plenaire sprekers</span>
+      </div>
+      <div class="info-card-body">
+        <strong>Dagvoorzitter:</strong> Regina van Tongeren<br>
+        <strong>DG (speech):</strong> Youssef Louakili<br>
+        <strong>Directeur CIIIC:</strong> Heleen Rouw<br>
+        <strong>Adviesraad:</strong> Rufus Baas<br>
+        <strong>Begeleidingscommissie:</strong> Arda Gerkens<br>
+        <strong>Keynote:</strong> Matt Cottam (Tellart)<br>
+        <strong>SAM AI:</strong> Sabrina Verhage (Tellart)
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">🗺️</span>
+        <span class="info-card-title">5 Tracks</span>
+      </div>
+      <div class="info-card-body">
+        <strong>Track 1</strong> – Wasruimte · Erik-Jan Bijvank + Matthew Hall<br>
+        <strong>Track 2</strong> – Loods · Paulien Dresscher + Avinash Changa e.a.<br>
+        <strong>Track 3</strong> – Loods · Ilse Leeninga + Jip Schelling<br>
+        <strong>Track 4</strong> – Loods · Dr. Wouter Sluis-Thiescheffer + Remco Hoogendijk e.a.<br>
+        <strong>Track 5</strong> – Loods · Regina van Tongeren + Corine Meijers e.a.
+      </div>
+      <div class="info-highlight">Track 4 heeft VR-brillen → interessant om te fotograferen</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="info-icon">🍽️</span>
+        <span class="info-card-title">Catering fotograaf</span>
+      </div>
+      <div class="info-card-body">
+        Jij valt onder <em>"Fotograaf, cartoonist, videograaf"</em> — 3 personen<br><br>
+        <strong>Lunch:</strong> ~12:00 in de Loods of productieruimte<br>
+        <strong>Diner:</strong> ~18:00 (all vegan)
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// ── Data ──
+const EVENTS = [
+  { time: '08:30', end: '08:45', tag: 'AANKOMST TELLART', title: 'Tellart-team arriveert', sub: 'Lieke Vermeulen (foto) + Lidiya Ozkul (video) aanwezig', loc: 'Loods', type: 'context' },
+  { time: '09:00', end: '09:15', tag: 'DOORLOOP', title: 'Doorloop keynote spreker Matt', sub: 'Tech check podium + presentatie', loc: 'Stage', type: 'context' },
+  { time: '09:15', end: null, tag: '📷 FOTOGRAAF', title: 'Jij aanwezig', sub: 'Melden bij Annemaryn of Esther · welkomsbalie', loc: 'Loods', type: 'photo' },
+  { time: '09:50', end: '09:55', tag: '📷 PRIORITEIT', title: 'Fotomoment RVO-bijeenkomst', sub: 'Foto met Heleen Rouw → meteen doorsturen naar techniek voor presentatie', loc: 'Wasruimte', type: 'photo' },
+  { time: '09:55', end: '10:00', tag: '⚡ ACTIE', title: 'Foto doorsturen naar techniek', sub: 'Via Annemaryn/Esther → in presentatie op scherm', loc: 'Stage', type: 'urgent' },
+  { time: '10:00', end: '11:00', tag: '📷 INSTALLATIES', title: 'Installaties actief', sub: 'Fotografeer de installaties tijdens de inloop', loc: 'Loods', type: 'photo' },
+  { time: '10:15', end: '11:00', tag: 'PROGRAMMA', title: 'Deuren open · Inloop bezoekers', sub: 'Sfeer, installaties, telefooncel, welkomsbalie fotograferen', loc: 'Loods', type: 'context' },
+  { time: '10:45', end: null, tag: '📷 INTERVIEW', title: 'Interview Youssef Louakili (DG)', sub: 'Filmteam CIIIC · Annemaryn + Ferry', loc: 'Loods', type: 'photo' },
+  { time: '11:00', end: '12:30', tag: '📷 PLENAIR', title: 'Start plenaire sessie', sub: 'Podium: Regina → Youssef → Heleen → Rufus → Arda → Matt Cottam (keynote) → SAM AI Sabrina', loc: 'Stage', type: 'photo' },
+  { time: '12:00', end: '12:30', tag: 'LUNCH CREW', title: 'Crewlunch', sub: '~25 in productieruimte, rest in Loods', loc: 'Productieruimte', type: 'context' },
+  { time: '12:30', end: '13:30', tag: '📷 INSTALLATIES', title: 'Installaties actief', sub: 'Tijdens lunchpauze — goede kans voor rustige opnames', loc: 'Loods', type: 'photo' },
+  { time: '13:30', end: '17:00', tag: '📷 TRACKS', title: 'Breakout-sessies lopen', sub: '5 parallelle tracks · Track 4 heeft VR-brillen', loc: 'Loods + Wasruimte', type: 'photo' },
+  { time: '17:00', end: '18:00', tag: '📷 BORREL + INSTALLATIES', title: 'Borrel · Installaties actief', sub: 'Installaties draaien · mensen in de ruimte · sessie 2 restaurantje', loc: 'Loods', type: 'photo' },
+  { time: '18:00', end: null, tag: 'EINDE', title: 'Einde programma', sub: 'Diner crew ~18:15 (all vegan)', loc: 'Loods', type: 'context' },
+];
+
+function timeToMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function nowMin() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+function buildTimeline() {
+  const tl = document.getElementById('tl');
+  const now = nowMin();
+
+  // progress bar
+  const dayStart = 9 * 60; // 09:00
+  const dayEnd = 18 * 60;  // 18:00
+  const pct = Math.min(100, Math.max(0, ((now - dayStart) / (dayEnd - dayStart)) * 100));
+
+  let html = `
+    <div class="progress-label"><span>09:00</span><span>18:00</span></div>
+    <div class="day-progress"><div class="day-progress-fill" style="width:${pct}%"></div></div>
+  `;
+
+  EVENTS.forEach(ev => {
+    const start = timeToMin(ev.time);
+    const end = ev.end ? timeToMin(ev.end) : start + 1;
+    const isPast = now > end;
+    const isNow = now >= start && now <= end + 30;
+
+    const tagClass = ev.type === 'photo' ? 'tag-photo' : '';
+    const blockClass = isNow ? 'is-now' : isPast ? 'past' : '';
+
+    html += `
+      <div class="time-block ${blockClass}">
+        <div class="time-col">
+          <div class="time-start">${ev.time}</div>
+          ${ev.end ? `<div class="time-end">${ev.end}</div>` : ''}
+        </div>
+        <div class="time-dot"></div>
+        <div class="time-content">
+          <div class="time-tag ${tagClass}">${ev.tag}</div>
+          <div class="time-title">${ev.title}</div>
+          ${ev.sub ? `<div class="time-sub">${ev.sub}</div>` : ''}
+          ${ev.loc ? `<div class="time-location">📍 ${ev.loc}</div>` : ''}
+        </div>
+      </div>
+    `;
+  });
+
+  tl.innerHTML = html;
+}
+
+// ── Clock ──
+function updateClock() {
+  const n = new Date();
+  const h = String(n.getHours()).padStart(2,'0');
+  const m = String(n.getMinutes()).padStart(2,'0');
+  const s = String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').childNodes[0].textContent = `${h}:${m}`;
+}
+
+// ── Nav ──
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Init ──
+buildTimeline();
+updateClock();
+setInterval(updateClock, 1000);
+setInterval(buildTimeline, 60000); // refresh every minute for now-marker
+</script>
+</body>
+</html>
